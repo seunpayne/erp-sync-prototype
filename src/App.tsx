@@ -69,7 +69,8 @@ export default function App() {
   }, [syncEngine, currentScreen]);
 
   const checkExistingDevice = async () => {
-    const device = await db.devices.first();
+    const devices = await db.devices.toArray();
+    const device = devices[0];
     if (device) {
       setDeviceId(device.device_fingerprint);
       setDeviceName(device.device_name);
@@ -160,7 +161,7 @@ export default function App() {
     addLog('inventory', 'conflict', 'Inventory conflict simulated', 'conflict');
   };
 
-  const addLog = (entity: string, operation: string, description: string, status: 'success' | 'failure' | 'conflict' | 'retry') => {
+  const addLog = (entity: string, operation: string, _description: string, status: 'success' | 'failure' | 'conflict' | 'retry') => {
     setSyncLogs(prev => [{
       id: `log_${Date.now()}_${Math.random()}`,
       timestamp: Date.now(),

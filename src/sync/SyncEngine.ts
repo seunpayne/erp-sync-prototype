@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { db, SyncQueueItem, SyncEvent, Product, Transaction } from '../db/schema';
+import { db, SyncQueueItem, SyncEvent, Product, Transaction, Device } from '../db/schema';
 
 export interface ConflictResolution {
   resolved: boolean;
@@ -11,7 +11,6 @@ export interface ConflictResolution {
 export class SyncEngine {
   private supabase: SupabaseClient;
   private deviceId: string;
-  private isOnline: boolean = true;
 
   constructor(supabaseUrl: string, supabaseKey: string, deviceId: string) {
     this.supabase = createClient(supabaseUrl, supabaseKey);
@@ -19,7 +18,8 @@ export class SyncEngine {
   }
 
   setOnline(online: boolean) {
-    this.isOnline = online;
+    // Online status is managed by browser Network API
+    console.log('[SyncEngine] Set online:', online);
   }
 
   // FUNCTION 1: Process sync queue
@@ -165,7 +165,11 @@ export class SyncEngine {
 
     // 3. Sort by entity and timestamp
     const allChanges = [...serverChanges, ...localPending].sort(
-      (a, b) => (a.client_timestamp || a.created_at) - (b.client_timestamp || b.created_at)
+      (a, b) => {
+        const timeA = 'client_timestamp' in a ? a.client_timestamp : a.created_at;
+        const timeB = 'client_timestamp' in b ? b.client_timestamp : b.created_at;
+        return timeA - timeB;
+      }
     );
 
     // 4. Process each entity's changes in order
@@ -246,7 +250,8 @@ export class SyncEngine {
   }
 
   async getDevice(): Promise<Device | undefined> {
-    return await db.devices.first();
+    const devices = await db.devices.toArray();
+    return devices[0];
   }
 
   async registerDevice(deviceName: string): Promise<Device> {
